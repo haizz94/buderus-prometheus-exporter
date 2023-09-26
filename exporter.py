@@ -10,13 +10,14 @@ from Cryptodome.Cipher import AES
 from Cryptodome.Hash import MD5
 from http import HTTPStatus
 
+#BUDERUS_ENDPOINTS = ['/dhwCircuits', '/gateway', '/heatSources', '/heatingCircuits', '/notifications', '/recordings', '/solarCircuits', '/system']
 BUDERUS_ENDPOINTS = [  '/system/sensors/temperatures/outdoor_t1', \
                         '/system/sensors/temperatures/hotWater_t2', \
                         '/system/healthStatus', \
                         '/heatSources/actualPower' ,\
+                        '/heatSources/energyMonitoring/consumption', \
                         '/system/appliance/actualSupplyTemperature', \
                         '/heatSources/actualModulation', \
-                        '/heatSources/workingTime/totalSystem' ,\
                         '/heatSources/systemPressure', \
                         '/heatSources/flameStatus', \
                         '/heatSources/ChimneySweeper', \
@@ -66,10 +67,10 @@ class BuderusCollector(object):
         g_power = GaugeMetricFamily("buderus_powers_kW", 'Buderus Power metrics in kW', labels=['sensor'])
         g_percent =  GaugeMetricFamily("buderus_percentages", 'Buderus metrics in %', labels=['sensor'])
         g_pressure =  GaugeMetricFamily("buderus_pressures_bar", 'Buderus pressure metrics in bar', labels=['sensor'])
-        g_min = GaugeMetricFamily("buderus_minutes", 'Buderus metrics in minutes', labels=['sensor'])
         g_info =  GaugeMetricFamily("buderus_infos", 'Buderus informations', labels=['sensor','info'])
         g_number = GaugeMetricFamily("buderus_numbers", "Buderus numbers without unit", labels=['sensor'])
         g_state = GaugeMetricFamily("buderus_states", 'Buderus state metrics', labels=['sensor'])
+        g_energy =  GaugeMetricFamily("buderus_energy_kWh", 'Buderus Energy Sensor in kWh', labels=['sensor'])
 
         for api in BUDERUS_ENDPOINTS:
             self.query(f'http://{self.km200_host}{api}')
@@ -92,8 +93,8 @@ class BuderusCollector(object):
                 elif r['type']=="state":
                     g_state.add_metric([r['metric']], r['value'])
 
-                elif r['type']=="mins":
-                    g_min.add_metric([r['metric']], r['value'])
+                elif r['type']=="kWh":
+                    g_energy.add_metric([r['metric']], r['value'])
 
                 elif r['type'].strip()=="":
                     g_number.add_metric([r['metric']], r['value'])
@@ -109,8 +110,8 @@ class BuderusCollector(object):
         yield g_pressure
         yield g_info
         yield g_state
-        yield g_min
         yield g_number
+        yield g_energy
 
         end = time.time()
         print(f"Collecting finished in {end-start} seconds")
